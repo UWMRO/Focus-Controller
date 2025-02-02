@@ -1,69 +1,76 @@
+// Define driver output pins
 int engPin = 7;
 int dirPin = 6;
 int clkPin = 5;
-// int brightness = ;
+
 void setup() {
-  // put your setup code here, to run once:
   pinMode(clkPin, OUTPUT);
   pinMode(engPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
   
   Serial.begin(9600);
-  while (!Serial);
+
+  // Wait for Serial connection to initialize before proceeding
+  while (!Serial) ;
   Serial.println("Input 1 to Turn LED on and 2 to turn off");
 }
-
-// void loop() {
-//   // put your main code here, to run repeatedly:
-//   digitalWrite(lightPin, LOW);
-// }
-
-// //Code for Blinking light
-// void loop() {
-//   // put your main code here, to run repeatedly:
-//   digitalWrite(lightPin, HIGH);
-//   delay(1000); //in units in ms, delays the next instruction by 1 second
-//   digitalWrite(lightPin, LOW);
-//   delay(1000);
-// }
 
 void loop() {
   if (Serial.available())
   {
     int state = Serial.parseInt();
-    if (state == 1)
-    {
-      Serial.println("Move Forward");
+    switch (state) {
+      case 1:
+        Serial.println("Move Forward");
 
-      //digitalWrite(engPin, HIGH);
-      digitalWrite(dirPin, HIGH);
+        digitalWrite(engPin, LOW);  // Motor is enabled when eng = 0
+        digitalWrite(dirPin, LOW);
 
-      moveMotorSmooth(clkPin);
-    }
+        moveMotor(clkPin, 250);
+        break;
 
-    if (state == 2)
-    {
-      Serial.println("Move Backward");
+      case 2:
+        Serial.println("Move Backward");
 
-      //digitalWrite(engPin, HIGH);
-      digitalWrite(dirPin, LOW);
+        digitalWrite(engPin, LOW);
+        digitalWrite(dirPin, HIGH);
 
-      moveMotor(clkPin, 500);
-    }
+        moveMotor(clkPin, 250);
+        break;
 
-    if (state == 3)
-    {
-      Serial.println("Motor Off");
+      case 3:
+        Serial.println("Motor Off");
 
-      digitalWrite(engPin, LOW);
-      digitalWrite(dirPin, LOW);
-    }
+        digitalWrite(engPin, HIGH);
+        break;
+
+      case 4:
+        Serial.println("Basic Test");
+
+        digitalWrite(engPin, LOW);
+        digitalWrite(dirPin, HIGH);
+
+        int period = 25;
+        for (int i = 0; i < 100; i++)
+        {
+          digitalWrite(clkPin, HIGH);
+          delay(period);
+          digitalWrite(clkPin, LOW);
+          delay(period);
+        }
+        break;
+      default:
+        // statements
+        break;
+    } 
+    
+
 
     if (state == 4)
     {
-      Serial.println("Test Real");
+      Serial.println("Basic Test");
 
-      digitalWrite(engPin, HIGH);
+      digitalWrite(engPin, LOW);
       digitalWrite(dirPin, HIGH);      
       int period = 25;
       for (int i = 0; i < 10; i++)
@@ -90,10 +97,10 @@ void testMotor(int clkPin)
   }
 }
 
-void moveMotor(int clkPin, int targetNumSteps)
+void moveMotor(int clkPin, int targetNumSteps) // Linear ramp to stop speed then
 {
   int slowPeriod = 20; // 20 Hz, could be changed to whatever
-  int fastPeriod = 1; // 500 Hz (Measured clock speed at MRO was 770 Hz)
+  int fastPeriod = 10; // 500 Hz (Measured clock speed at MRO was 770 Hz)
   int accelTime = slowPeriod - fastPeriod; //Number of steps to reach max clk speed, in the case of linear ramp it is just slow - fast
   int numSteps= 0;
 
@@ -105,12 +112,12 @@ void moveMotor(int clkPin, int targetNumSteps)
   while(clkPeriod >= fastPeriod && numSteps < targetNumSteps - accelTime)
   {
     digitalWrite(clkPin, HIGH);
-    numSteps++;
     delay(clkPeriod);
     digitalWrite(clkPin, LOW);
     delay(clkPeriod);
 
-    Serial.println(clkPeriod);
+    Serial.print("Accelerating, Clkperiod = "); Serial.println(clkPeriod);
+    numSteps++;
     clkPeriod--;
   }
 
@@ -118,12 +125,12 @@ void moveMotor(int clkPin, int targetNumSteps)
   while (numSteps < targetNumSteps - accelTime)
   {
     digitalWrite(clkPin, HIGH);
-    numSteps++;
     delay(fastPeriod);
     digitalWrite(clkPin, LOW);
     delay(fastPeriod);
 
-    Serial.println(fastPeriod);
+    Serial.print("Max speed, Clkperiod = "); Serial.println(clkPeriod);
+    numSteps++;
   }
 
   //Linear ramp down to slowPeriod
@@ -131,16 +138,17 @@ void moveMotor(int clkPin, int targetNumSteps)
   while(clkPeriod < slowPeriod && numSteps < targetNumSteps)
   {
     digitalWrite(clkPin, HIGH);
-    numSteps++;
     delay(clkPeriod);
     digitalWrite(clkPin, LOW);
     delay(clkPeriod);
     
+    Serial.print("Deccelerating, Clkperiod = "); Serial.println(clkPeriod);
     Serial.println(clkPeriod);
+    numSteps++;
     clkPeriod++;
   }
   
-
+  Serial.println("Motor has stopped...hopefully ._.");
 }
 
 void moveMotorSmooth(int motorPin)
