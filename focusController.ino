@@ -1,216 +1,206 @@
-// Define driver output pins
-int engPin = 7;
-int dirPin = 6;
-int clkPin = 5;
+/*
+  Web Server
+
+ A simple web server that shows the value of the analog input pins.
+ using an Arduino Wiznet Ethernet shield.
+
+ Circuit:
+ * Ethernet shield attached to pins 10, 11, 12, 13
+ * Analog inputs attached to pins A0 through A5 (optional)
+
+ created 18 Dec 2009
+ by David A. Mellis
+ modified 9 Apr 2012
+ by Tom Igoe
+ modified 02 Sept 2015
+ by Arturo Guadalupi
+ 
+ */
+
+#include <SPI.h>
+#include <Ethernet.h>
+
+// Enter a MAC address and IP address for your controller below.
+// The IP address will be dependent on your local network:
+byte mac[] = {
+  0xA8, 0x61, 0x0A, 0xAE, 0x25, 0x13
+};
+IPAddress ip(192, 168, 1, 11);
+
+// Initialize the Ethernet server library
+// with the IP address and port you want to use
+// (port 80 is default for HTTP):
+EthernetServer server(80);
+
+// Focuser state
+volatile int position = 0;
+bool moving = false;
+int target_steps = 0;
+unsigned long lastStepTime = 0;
+const int stepDelay = 100; // ms per step
+const int up_limit = 100;
+const int down_limit = -100;
 
 void setup() {
-  pinMode(clkPin, OUTPUT);
-  pinMode(engPin, OUTPUT);
-  pinMode(dirPin, OUTPUT);
-  
-  Serial.begin(9600);
+  // You can use Ethernet.init(pin) to configure the CS pin
+  //Ethernet.init(10);  // Most Arduino shields
+  //Ethernet.init(5);   // MKR ETH shield
+  //Ethernet.init(0);   // Teensy 2.0
+  //Ethernet.init(20);  // Teensy++ 2.0
+  //Ethernet.init(15);  // ESP8266 with Adafruit Featherwing Ethernet
+  //Ethernet.init(33);  // ESP32 with Adafruit Featherwing Ethernet
 
-  // Wait for Serial connection to initialize before proceeding
-  while (!Serial) ;
-  Serial.println("Input 1 to Turn LED on and 2 to turn off");
+  // Open serial communications and wait for port to open:
+  Serial.begin(9600);
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+  Serial.println("Ethernet WebServer Example");
+
+  // start the Ethernet connection and the server:
+  Ethernet.begin(mac, ip);
+
+  // Check for Ethernet hardware present
+  if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+    Serial.println("Ethernet shield was not found.  Sorry, can't run without hardware. :(");
+    while (true) {
+      delay(1); // do nothing, no point running without Ethernet hardware
+    }
+  }
+  if (Ethernet.linkStatus() == LinkOFF) {
+    Serial.println("Ethernet cable is not connected.");
+  }
+
+  // start the server
+  server.begin();
+  Serial.print("server is at ");
+  Serial.println(Ethernet.localIP());
 }
+
 
 void loop() {
-  if (Serial.available())
-  {
-    int state = Serial.parseInt();
-    switch (state) {
-      case 1:
-        Serial.println("Move Forward");
+  // listen for incoming clients
+  updatePosition();
+  EthernetClient client = server.available();
+  if (client) {
 
-        digitalWrite(engPin, LOW);  // Motor is enabled when eng = 0
-        digitalWrite(dirPin, LOW);
+    handleClient(client);
+    // Serial.println("new client");
+    // // an http request ends with a blank line
+    // boolean currentLineIsBlank = true;
+    // while (client.connected()) {
+    //   if (client.available()) {
+    //     char c = client.read();
+    //     Serial.write(c);
+    //     // if you've gotten to the end of the line (received a newline
+    //     // character) and the line is blank, the http request has ended,
+    //     // so you can send a reply
+    //     if (c == '\n' && currentLineIsBlank) {
+    //       // send a standard http response header
+    //       client.println("HTTP/1.1 200 OK");
+    //       client.println("Content-Type: text/html");
+    //       client.println("Connection: close");  // the connection will be closed after completion of the response
+    //       client.println("Refresh: 5");  // refresh the page automatically every 5 sec
+    //       client.println();
+    //       client.println("<!DOCTYPE HTML>");
+    //       client.println("<html>");
+    //       // output the value of each analog input pin
+    //       for (int analogChannel = 0; analogChannel < 6; analogChannel++) {
+    //         int sensorReading = analogRead(analogChannel);
+    //         client.print("analog input ");
+    //         client.print(analogChannel);
+    //         client.print(" is ");
+    //         client.print(sensorReading);
+    //         client.println("<br />");
+    //       }
+    //       client.println("</html>");
+    //       break;
+    //     }
+    //     if (c == '\n') {
+    //       // you're starting a new line
+    //       currentLineIsBlank = true;
+    //     } else if (c != '\r') {
+    //       // you've gotten a character on the current line
+    //       currentLineIsBlank = false;
+    //     }
+    //   }
+    }
+    // give the web browser time to receive the data
+    delay(1);
+    // close the connection:
+    client.stop();
+    //Serial.println("client disconnected");
+  }
 
-        moveMotor(clkPin, 250);
-        break;
-
-      case 2:
-        Serial.println("Move Backward");
-
-        digitalWrite(engPin, LOW);
-        digitalWrite(dirPin, HIGH);
-
-        moveMotor(clkPin, 250);
-        break;
-
-      case 3:
-        Serial.println("Motor Off");
-
-        digitalWrite(engPin, HIGH);
-        break;
-
-      case 4:
-        Serial.println("Basic Test");
-
-        digitalWrite(engPin, LOW);
-        digitalWrite(dirPin, HIGH);
-
-        int period = 25;
-        for (int i = 0; i < 100; i++)
-        {
-          digitalWrite(clkPin, HIGH);
-          delay(period);
-          digitalWrite(clkPin, LOW);
-          delay(period);
-        }
-        break;
-      default:
-        // statements
-        break;
-    } 
-    
-
-
-    if (state == 4)
-    {
-      Serial.println("Basic Test");
-
-      digitalWrite(engPin, LOW);
-      digitalWrite(dirPin, HIGH);      
-      int period = 25;
-      for (int i = 0; i < 10; i++)
-      {
-        digitalWrite(clkPin, HIGH);
-        delay(period);
-        digitalWrite(clkPin, LOW);
-        delay(period);
+  void handleClient(EthernetClient client) {
+    char request[128];
+    int i = 0;
+  
+    while (client.connected() && i < 127) {
+      if (client.available()) {
+        char c = client.read();
+        if (c == '\n' || c == '\r') break;
+        request[i++] = c;
       }
     }
+    request[i] = '\0';
+
+  // To access: 192.168.1.11/status
+  // or curl -X GET http://192.168.1.11/status in terminal
+  if (strstr(request, "GET /status")) {
+    sendJSONResponse(client, 200, 
+      "\"moving\":" + String(moving) + 
+      ",\"step\":" + String(position) + 
+      ",\"limit\":" + String(checkLimits()));
+  }
+
+  // curl -X POST http://192.168.1.11/move?steps=50
+  else if (strstr(request, "POST /move?steps")) {
+    char* stepsParam = strstr(request, "steps=");
+    if (stepsParam) {
+      int steps = atoi(stepsParam + 6);
+      Serial.print("moving ");
+      Serial.println(steps);
+      startMovement(steps);
+    }
+    sendJSONResponse(client, 200, "\"code\":200");
+  }
+
+  // curl -X POST http://192.168.1.11/abort
+  else if (strstr(request, "POST /abort")) {
+    moving = false;
+    sendJSONResponse(client, 300, "\"code\":300");
+    Serial.println("Aborting movement");
   }
 }
 
-void testMotor(int clkPin)
-{
-  int testPeriod = 500;
-  int numSpin = 2;
-  for (int i = 0; i < numSpin; i++)
-  {
-    digitalWrite(clkPin, HIGH);
-    delay(testPeriod);
-    digitalWrite(clkPin, LOW);
-    delay(testPeriod);
-  }
+void sendJSONResponse(EthernetClient client, int code, String body) {
+  client.println("HTTP/1.1 " + String(code) + " OK");
+  client.println("Content-Type: application/json");
+  client.println("Connection: close");
+  client.println();
+  client.println("{" + body + "}");
 }
 
-void moveMotor(int clkPin, int targetNumSteps) // Linear ramp to stop speed then
-{
-  int slowPeriod = 20; // 20 Hz, could be changed to whatever
-  int fastPeriod = 10; // 500 Hz (Measured clock speed at MRO was 770 Hz)
-  int accelTime = slowPeriod - fastPeriod; //Number of steps to reach max clk speed, in the case of linear ramp it is just slow - fast
-  int numSteps= 0;
-
-  // Start Motor
-  // Non linear example: for ( int i = slowPeriod, i>= fastPeriod; i = int(i/1.33) ) 
-
-  //Linear Ramp:
-  int clkPeriod = slowPeriod;
-  while(clkPeriod >= fastPeriod && numSteps < targetNumSteps - accelTime)
-  {
-    digitalWrite(clkPin, HIGH);
-    delay(clkPeriod);
-    digitalWrite(clkPin, LOW);
-    delay(clkPeriod);
-
-    Serial.print("Accelerating, Clkperiod = "); Serial.println(clkPeriod);
-    numSteps++;
-    clkPeriod--;
-  }
-
-  //Stay at max speed until we are ready to decelerate
-  while (numSteps < targetNumSteps - accelTime)
-  {
-    digitalWrite(clkPin, HIGH);
-    delay(fastPeriod);
-    digitalWrite(clkPin, LOW);
-    delay(fastPeriod);
-
-    Serial.print("Max speed, Clkperiod = "); Serial.println(clkPeriod);
-    numSteps++;
-  }
-
-  //Linear ramp down to slowPeriod
-  clkPeriod = fastPeriod;
-  while(clkPeriod < slowPeriod && numSteps < targetNumSteps)
-  {
-    digitalWrite(clkPin, HIGH);
-    delay(clkPeriod);
-    digitalWrite(clkPin, LOW);
-    delay(clkPeriod);
+void updatePosition() {
+  if (moving && (millis() - lastStepTime > stepDelay)) {
+    position += (target_steps > 0) ? 1 : -1;
+    target_steps -= (target_steps > 0) ? 1 : -1;
+    lastStepTime = millis();
     
-    Serial.print("Deccelerating, Clkperiod = "); Serial.println(clkPeriod);
-    Serial.println(clkPeriod);
-    numSteps++;
-    clkPeriod++;
+    if (target_steps == 0 || checkLimits()) {
+      moving = false;
+      position = constrain(position, down_limit, up_limit);
+    }
   }
-  
-  Serial.println("Motor has stopped...hopefully ._.");
 }
 
-void moveMotorSmooth(int motorPin)
-{
-  float freq = 150;           // Initial frequency of the clock signal (2 Hz)
-  float targetFreq = 3080;   // Target frequency of the clock signal (770 Hz)
-  float k = 0.05;                // Rate of frequency change
-  unsigned long prevMillis = 0;  // Used to time frequency changes
-  unsigned long interval = 1;      // Interval for frequency updates (in milliseconds)
-  bool moveCancelled = false;
-
-  while(!moveCancelled) 
-  {
-    // Calculate the current frequency using asymptotic formula from chat gpt
-    // Asymptotic: 
-    //freq = freq - (freq - targetFreq) / (1 + exp(-k * ((millis() / 1000.0) - 1000)));
-    freq++;
-    // Update the frequency every 'interval' milliseconds
-    unsigned long currentMillis = millis();
-    if (currentMillis - prevMillis >= interval) {
-      prevMillis = currentMillis;
-      
-      // Update the tone frequency
-      tone(motorPin, freq); // Generate the clock signal with the calculated frequency
-    }
-    
-    // Optionally print the current frequency to the Serial Monitor
-    Serial.println(freq);
-
-      //If the frequency reaches or exceeds the target, stop generating the clock signal
-    if (freq >= targetFreq - 1) {
-      //noTone(motorPin);  // Stop the clock signal when target is reached
-      Serial.println("Target frequency reached.");
-      moveCancelled = true;
-    }
-  }
-
-  delay(800);
-
-  while(freq > 0)
-  {
-    // Calculate the current frequency using asymptotic formula from chat gpt
-    // Asymptotic: freq = freq - (freq - targetFreq) / (1 + exp(-k * (millis() / 1000.0  - 1000)));
-    freq--;
-    // Update the frequency every 'interval' milliseconds
-    unsigned long currentMillis = millis();
-    if (currentMillis - prevMillis >= interval) {
-      prevMillis = currentMillis;
-      
-      // Update the tone frequency
-      tone(motorPin, freq); // Generate the clock signal with the calculated frequency
-    }
-    
-    // Optionally print the current frequency to the Serial Monitor
-    Serial.println(freq);
-
-      // If the frequency reaches or exceeds the target, stop generating the clock signal
-    if (freq <= 150) {
-      freq = 0;
-      noTone(motorPin);  // Stop the clock signal when target is reached
-      Serial.println("Target frequency reached.");
-    }
-  }
-
+bool checkLimits() {
+  return (position >= up_limit) || (position <= down_limit);
 }
+
+void startMovement(int steps) {
+  target_steps = steps;
+  moving = true;
+}
+
