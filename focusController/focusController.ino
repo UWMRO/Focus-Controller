@@ -25,9 +25,7 @@
 #include <StaticThreadController.h>
 
 // MAC address and IP address for controller
-byte mac[] = {
-  0xA8, 0x61, 0x0A, 0xAE, 0x25, 0x13
-};
+byte mac[] = {0xA8, 0x61, 0x0A, 0xAE, 0x25, 0x13};
 IPAddress ip(192, 168, 1, 11);
 
 // Initialize the Ethernet server library
@@ -36,7 +34,7 @@ IPAddress ip(192, 168, 1, 11);
 EthernetServer server(80);
 
 // Multithread for handling motor movement in background
-Thread moveMotor = Thread();
+// Thread moveMotor = Thread();
 
 // Focuser fields
 volatile int position = 0;
@@ -82,9 +80,9 @@ void setup() {
   Serial.print("Server starting at ");
   Serial.println(Ethernet.localIP());
 
-  //initialize thread
-  moveMotor.onRun(startMovement);
-  moveMotor.enabled = true;
+  // initialize thread
+  // moveMotor.onRun(startMovement);
+  // moveMotor.enabled = true;
 }
 
 
@@ -101,7 +99,7 @@ void loop() {
 
     // close the connection:
     client.stop();
-    //Serial.println("client disconnected");
+    // Serial.println("client disconnected");
   }
 }
 
@@ -129,25 +127,35 @@ void handleClient(EthernetClient client) {
   */
 
   /*
-  Command: move?steps
-  Paramters: steps: <int32>
-  Returns: {code: <int32>}
-            ^ Descriptions of each json field are described in Focuser Arduino Specification Google Doc
-  Test code: "curl -X POST http://192.168.1.11/move?steps=500"
+    Command: move?steps
+    Paramters: steps: <int32>
+    Returns: {code: <int32>}
+              ^ Descriptions of each json field are described in Focuser Arduino Specification Google Doc
+    Test code: "curl -X POST http://192.168.1.11/move?steps=500"
   */
-
-
   if (strstr(request, "POST /move?steps")) {
     char* stepsParam = strstr(request, "steps=");
-    if (stepsParam && moveMotor.shouldRun()) {
-      moveSteps = atoi(stepsParam + 6);
+    if (stepsParam) { // moveMotor.shouldRun()
+      // if the request contains '-', then switch to negative direction
+      char* negative = strstr(request, "-");
+      if (negative > stepsParam) {
+        digitalWrite(8, LOW); // is this the right value to write?
+        moveSteps = atoi(stepsParam + 7); // jump to the value after - sign
+      }
+      else {
+        digitalWrite(8, HIGH);
+        moveSteps = atoi(stepsParam + 6); // jump to the value after = sign
+      }
+        
+      // now tell them we are moving
       Serial.print("moving ");
       Serial.println(moveSteps);
 
-      moveMotor.run();
-    }
+      // moveMotor.run();
+      startMovement();
     sendJSONResponse(client, 200, "\"code\":200");
   }
+  
   /*
   Command: status
   Paramters: None
@@ -212,9 +220,7 @@ bool checkLimits() {
 }
 
 void startMovement() {
-  
   //Disable thread so another movement call won't overwrite the current movement
-  moveMotor.enabled = false;
   moving = true;
 
   // Period is 1/f, we want to convert to ms then divide by 2 since pulseTime should be half of a clock cycle
@@ -242,6 +248,6 @@ void startMovement() {
   Serial.println("Movement Finished");
 
   moving = false;
-  moveMotor.enabled = true;
+  // moveMotor.enabled = true;
 }
 
