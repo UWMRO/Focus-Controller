@@ -52,11 +52,12 @@ float clkRamp = 1;
 bool atTop;
 bool atBottom;
 
+// Pin Numbers
 int clkPin = 9;
 int dirPin = 8;
 int enPin = 7;
-int topLimPin = 6;
-int botLimPin = 5;
+int topLimPin = 3;
+int botLimPin = 2;
 
 void setup() {
   // Open serial communications and wait for port to open:
