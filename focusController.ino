@@ -1,5 +1,5 @@
 /*
-  MRO Focus Controller 
+  MRO Focus Controller (NON THREADED VERSION)
 
   An arduino that sends focussing based commands to the Manastash Ridge Observatory
   
@@ -20,14 +20,9 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
-#include <Thread.h>
-#include <ThreadController.h>
-#include <StaticThreadController.h>
 
 // MAC address and IP address for controller
-byte mac[] = {
-  0xA8, 0x61, 0x0A, 0xAE, 0x25, 0x13
-};
+byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x25, 0x13 };
 IPAddress ip(192, 168, 1, 11);
 
 // Initialize the Ethernet server library
@@ -35,31 +30,39 @@ IPAddress ip(192, 168, 1, 11);
 // (port 80 is default for HTTP):
 EthernetServer server(80);
 
-// Multithread for handling motor movement in background
-Thread moveMotor = Thread();
 
 // Focuser fields
 volatile int position = 0;
 bool moving = false;
 int target_steps = 0;
 unsigned long lastStepTime = 0;
-const int stepDelay = 100; // ms per step
+const int stepDelay = 100;  // ms per step
 const int up_limit = 100;
 const int down_limit = -100;
 
 int moveSteps = 0;
-float clkFreq = 50; // in Hz
 bool abortMovement = false;
+
+// Movement Tuning parameters
+float maxClkFreq = 330;  // in Hz
+float minClkFreq = 50;
+float clkRamp = 1;
+
+// Limit Conditionals
+bool atTop;
+bool atBottom;
 
 int clkPin = 9;
 int dirPin = 8;
 int enPin = 7;
+int topLimPin = 6;
+int botLimPin = 5;
 
 void setup() {
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
   while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
+    ;  // wait for serial port to connect. Needed for native USB port only
   }
   Serial.println("Ethernet WebServer Booting");
 
@@ -70,21 +73,28 @@ void setup() {
   if (Ethernet.hardwareStatus() == EthernetNoHardware) {
     Serial.println("Ethernet shield was not found.  Sorry, can't run without hardware. :(");
     while (true) {
-      delay(1); // do nothing, no point running without Ethernet hardware
+      delay(1);  // do nothing, no point running without Ethernet hardware
     }
   }
   if (Ethernet.linkStatus() == LinkOFF) {
     Serial.println("Ethernet cable is not connected.");
   }
 
+  // Define pins
+  pinMode(clkPin, OUTPUT);
+  pinMode(dirPin, OUTPUT);
+  pinMode(enPin, OUTPUT);
+  pinMode(topLimPin, INPUT);
+  pinMode(botLimPin, INPUT);
+
+  // Check Limits Before starting
+  atTop = digitalRead(topLimPin) == LOW;  // Based on Measurements from fall, 0V means limit hit and 3.3V means limit not hit
+  atBottom = digitalRead(botLimPin) == LOW;
+
   // start the server
   server.begin();
   Serial.print("Server starting at ");
   Serial.println(Ethernet.localIP());
-
-  //initialize thread
-  moveMotor.onRun(startMovement);
-  moveMotor.enabled = true;
 }
 
 
@@ -101,24 +111,23 @@ void loop() {
 
     // close the connection:
     client.stop();
-    //Serial.println("client disconnected");
   }
 }
 
 
 void handleClient(EthernetClient client) {
-    char request[128];
-    int i = 0;
+  char request[128];
+  int i = 0;
 
-    // Retrieve client command
-    while (client.connected() && i < 127) {
-      if (client.available()) {
-        char c = client.read();
-        if (c == '\n' || c == '\r') break;
-        request[i++] = c;
-      }
+  // Retrieve client command
+  while (client.connected() && i < 127) {
+    if (client.available()) {
+      char c = client.read();
+      if (c == '\n' || c == '\r') break;
+      request[i++] = c;
     }
-    request[i] = '\0';
+  }
+  request[i] = '\0';
 
 
   /*
@@ -129,25 +138,50 @@ void handleClient(EthernetClient client) {
   */
 
   /*
-  Command: move?steps
-  Paramters: steps: <int32>
-  Returns: {code: <int32>}
-            ^ Descriptions of each json field are described in Focuser Arduino Specification Google Doc
-  Test code: "curl -X POST http://192.168.1.11/move?steps=500"
+    Command: move?steps
+    Paramters: steps: <int32>
+    Returns: {code: <int32>}
+              ^ Descriptions of each json field are described in Focuser Arduino Specification Google Doc
+    Test code: "curl -X POST http://192.168.1.11/move?steps=500"
   */
-
-
   if (strstr(request, "POST /move?steps")) {
     char* stepsParam = strstr(request, "steps=");
-    if (stepsParam && moveMotor.shouldRun()) {
-      moveSteps = atoi(stepsParam + 6);
-      Serial.print("moving ");
-      Serial.println(moveSteps);
+    bool positiveDirection;
+    if (stepsParam) {  // moveMotor.shouldRun()
+      // if the request contains '-', then switch to negative direction
+      char* negative = strstr(request, "-");
+      if (negative > stepsParam) {
+        digitalWrite(dirPin, LOW);         // is this the right value to write? (SWAP DIGITAL WRITE AT OBSERVATORY IF REVERSED)
+        moveSteps = atoi(stepsParam + 7);  // jump to the value after - sign
+        positiveDirection = false;
+        Serial.println("Going to move backward " + String(moveSteps) + " steps");
+      } else {
+        digitalWrite(dirPin, HIGH);
+        moveSteps = atoi(stepsParam + 6);  // jump to the value after = sign
+        positiveDirection = true;
+        Serial.println("Going to move forward " + String(moveSteps) + " steps");
+      }
 
-      moveMotor.run();
+      if (moving) {
+        sendJSONResponse(client, 523, "\"code\":523");
+        Serial.println("MOVEMENT CANCELLED: Motor Already Running");
+      } else if (moveSteps > 10000 or moveSteps < 10) {
+        sendJSONResponse(client, 522, "\"code\":522");
+        Serial.println("MOVEMENT CANCELLED: Incorrect step size! Try int32 that is >=10 and <=10000");
+      } else if (digitalRead(topLimPin) == LOW) {
+        sendJSONResponse(client, 520, "\"code\":520");
+        Serial.println("MOVEMENT CANCELLED: Top limit hit!");
+      } else if (digitalRead(botLimPin) == LOW) {
+        sendJSONResponse(client, 521, "\"code\":521");
+        Serial.println("MOVEMENT CANCELLED: Bottom limit hit!");
+      } else {
+        startMovement(client, positiveDirection);
+      }
     }
-    sendJSONResponse(client, 200, "\"code\":200");
   }
+
+
+
   /*
   Command: status
   Paramters: None
@@ -156,10 +190,8 @@ void handleClient(EthernetClient client) {
   Test code: "curl -X GET http://192.168.1.11/status"
   */
   if (strstr(request, "GET /status")) {
-    sendJSONResponse(client, 200, 
-      "\"moving\":" + String(moving) + 
-      ",\"step\":" + String(position) + 
-      ",\"limit\":" + String(checkLimits()));
+    sendJSONResponse(client, 200,
+                     "\"moving\":" + String(moving) + ",\"step\":" + String(position) + ",\"limit\":" + String(checkLimits()));
 
     Serial.println("Status Message Sent! :D");
   }
@@ -174,15 +206,15 @@ void handleClient(EthernetClient client) {
   else if (strstr(request, "POST /abort")) {
     if (moving) {
       abortMovement = true;
-      Serial.println("Aborting movement");
+      sendJSONResponse(client, 200, "\"code\":200");
+      Serial.println("Movement Aborted");
+    } else {
+      sendJSONResponse(client, 530, "\"code\":530");
+      Serial.println("ABORT CANCELLED: Motor is not currently moving");
     }
-    else {
-      Serial.println("No Movement to Abort");
-    }
-
-    sendJSONResponse(client, 300, "\"code\":300");
   }
 }
+
 
 // Code for formatting json return strings
 void sendJSONResponse(EthernetClient client, int code, String body) {
@@ -193,13 +225,16 @@ void sendJSONResponse(EthernetClient client, int code, String body) {
   client.println("{" + body + "}");
 }
 
+bool checkLimits() {
+  return (digitalRead(topLimPin) == LOW || digitalRead(botLimPin) == LOW);
+}
 // Emulating the potentiometer position
 void updatePosition() {
   if (moving && (millis() - lastStepTime > stepDelay)) {
     position += (target_steps > 0) ? 1 : -1;
     target_steps -= (target_steps > 0) ? 1 : -1;
     lastStepTime = millis();
-    
+
     if (target_steps == 0 || checkLimits()) {
       moving = false;
       position = constrain(position, down_limit, up_limit);
@@ -207,41 +242,57 @@ void updatePosition() {
   }
 }
 
-bool checkLimits() {
-  return (position >= up_limit) || (position <= down_limit);
-}
-
-void startMovement() {
-  
-  //Disable thread so another movement call won't overwrite the current movement
-  moveMotor.enabled = false;
+void startMovement(EthernetClient client, bool positiveDirection) {
   moving = true;
 
   // Period is 1/f, we want to convert to ms then divide by 2 since pulseTime should be half of a clock cycle
-  long pulseTime = long(float(1)*500000.0/clkFreq);
+  long pulseTime = long(float(1) * 500000.0 / maxClkFreq);
 
   int i = 0;
-  while (i < moveSteps && !abortMovement) {
-    long pastTime = micros();
-    digitalWrite(clkPin, HIGH);
-    Serial.print("clkHigh");
+  while (i < moveSteps) {
+    if (abortMovement) {
+      abortMovement = false;
+      return;
+    } else if (digitalRead(topLimPin) == LOW) {
+      sendJSONResponse(client, 520, "\"code\":520");
+      position = position + i;
+      Serial.println();
+      Serial.println("MOVEMENT CANCELLED: Top limit hit!");
+      return;
+    } else if (digitalRead(botLimPin) == LOW) {
+      position = position - i;
+      sendJSONResponse(client, 521, "\"code\":521");
+      Serial.println();
+      Serial.println("MOVEMENT CANCELLED: Bottom limit hit!");
+      return;
+    } else {
+      long pastTime = micros();
+      digitalWrite(clkPin, HIGH);
+      Serial.print("clkHigh");
 
-    // delay until halfway through period designated by clk_frequency
-    while (micros() - pastTime < pulseTime) {}
-    
-    pastTime = micros();
-    digitalWrite(clkPin, LOW);
-    Serial.print("clkLow");
+      // delay until halfway through period designated by clk_frequency
+      while (micros() - pastTime < pulseTime) {}
 
-    // delay until reach the end of period
-    while (micros() - pastTime < pulseTime) {}
+      pastTime = micros();
+      digitalWrite(clkPin, LOW);
+      Serial.print("clkLow");
 
-    i++;
+      // delay until reach the end of period
+      while (micros() - pastTime < pulseTime) {}
+
+      i++;
+    }
   }
+
   Serial.println();
-  Serial.println("Movement Finished");
-
+  Serial.println("Movement successfully finished (Huge Dub)");
   moving = false;
-  moveMotor.enabled = true;
-}
+  if (positiveDirection) {
+    position = position + moveSteps;
+  }
+  else {
+    position = position - moveSteps;
+  }
 
+  sendJSONResponse(client, 200, "\"code\":200");
+}
