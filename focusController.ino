@@ -44,9 +44,9 @@ int moveSteps = 0;
 bool abortMovement = false;
 
 // Movement Tuning parameters
-float maxClkFreq = 330;  // in Hz
-float minClkFreq = 50;
-float clkRamp = 1;
+float maxClkFreq = 770;  // in Hz
+float minClkFreq = 10;   // in Hz
+float clkRamp = 2;       // in Hz
 
 // Limit Conditionals
 bool atTop;
@@ -169,12 +169,6 @@ void handleClient(EthernetClient client) {
       } else if (moveSteps > 10000 or moveSteps < 10) {
         sendJSONResponse(client, 522, "\"code\":522");
         Serial.println("MOVEMENT CANCELLED: Incorrect step size! Try int32 that is >=10 and <=10000");
-      } else if (digitalRead(topLimPin) == LOW) {
-        sendJSONResponse(client, 520, "\"code\":520");
-        Serial.println("MOVEMENT CANCELLED: Top limit hit!");
-      } else if (digitalRead(botLimPin) == LOW) {
-        sendJSONResponse(client, 521, "\"code\":521");
-        Serial.println("MOVEMENT CANCELLED: Bottom limit hit!");
       } else {
         startMovement(client, positiveDirection);
       }
@@ -245,12 +239,31 @@ void updatePosition() {
 
 void startMovement(EthernetClient client, bool positiveDirection) {
   moving = true;
+  int maxFreq = maxClkFreq;
+
 
   // Period is 1/f, we want to convert to ms then divide by 2 since pulseTime should be half of a clock cycle
-  long pulseTime = long(float(1) * 500000.0 / maxClkFreq);
+  long minPeriod = long(float(1) * 500000.0 / maxClkFreq);
+  long currPeriod = long(float(1) * 500000.0 / minClkFreq);
+
+  int rampDistance = (maxClkFreq-minClkFreq) / clkRamp;
+  Serial.println("RAMP DISTANCE" + String(rampDistance));
+
+  //Pre Define Stages
+  int rampUpEnd = rampDistance;
+  int rampDownStart = moveSteps - rampDistance;
+  if(rampDistance > int(moveSteps/2)) {
+    rampUpEnd = int(moveSteps/2);
+    rampDownStart = int(moveSteps/2) + 1;
+    maxFreq = int(minClkFreq+rampUpEnd*clkRamp);
+    minPeriod = long(float(1) * 500000.0 / maxFreq);
+  }
 
   int i = 0;
   while (i < moveSteps) {
+    long pastTime = micros();
+
+    // Check all conditions before sending clock signal
     if (abortMovement) {
       abortMovement = false;
       return;
@@ -267,22 +280,33 @@ void startMovement(EthernetClient client, bool positiveDirection) {
       Serial.println("MOVEMENT CANCELLED: Bottom limit hit!");
       return;
     } else {
-      long pastTime = micros();
+      //Positive edge of clk
       digitalWrite(clkPin, HIGH);
       Serial.print("clkHigh");
 
       // delay until halfway through period designated by clk_frequency
-      while (micros() - pastTime < pulseTime) {}
+      while (micros() - pastTime < currPeriod) {Serial.println("WAITING");}
 
       pastTime = micros();
       digitalWrite(clkPin, LOW);
       Serial.print("clkLow");
 
-      // delay until reach the end of period
-      while (micros() - pastTime < pulseTime) {}
-
       i++;
+
+      // CODE FOR DETERMINING THE NEXT CLOCK PERIOD LENGTH
+      if(i <= rampUpEnd && currPeriod != minPeriod){
+          long newPeriod = long(float(1) * 500000.0 / (minClkFreq+i*clkRamp)); // If at i = 1 and clkRamp = 2, sets clk Freq to 1*2 + startClkFreq (in Hz)
+          if(newPeriod > minPeriod) {
+            currPeriod = newPeriod;
+          }
+      }
+      else if (i >= rampDownStart){
+          currPeriod = long(float(1) * 500000.0 / (maxFreq - (i-rampDownStart)*clkRamp));
+      }
     }
+
+    // delay until reach the end of period
+      while (micros() - pastTime < currPeriod) {Serial.println("WAITING");}
   }
 
   Serial.println();
