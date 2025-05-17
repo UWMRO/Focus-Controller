@@ -243,13 +243,13 @@ void startMovement(EthernetClient client, bool positiveDirection) {
   moving = true;
   int maxFreq = maxClkFreq;
 
-
-  // Period is 1/f, we want to convert to ms then divide by 2 since pulseTime should be half of a clock cycle
+  // Period is 1/f, we want to convert to us then divide by 2 since pulseTime should be half of a clock cycle
   long minPeriod = long(float(1) * 500000.0 / maxClkFreq);
   long currPeriod = long(float(1) * 500000.0 / minClkFreq);
 
   int rampDistance = (maxClkFreq-minClkFreq) / clkRamp;
-  Serial.println("RAMP DISTANCE" + String(rampDistance));
+  Serial.println("RAMP DISTANCE " + String(rampDistance));
+  Serial.println("minPd " + String(minPeriod)  + " maxPd " + String(currPeriod));
 
   //Pre Define Stages
   int rampUpEnd = rampDistance;
@@ -258,14 +258,14 @@ void startMovement(EthernetClient client, bool positiveDirection) {
     rampUpEnd = int(moveSteps/2);
     rampDownStart = int(moveSteps/2) + 1;
     maxFreq = int(minClkFreq+rampUpEnd*clkRamp);
-    minPeriod = long(float(1) * 500000.0 / maxFreq);
+    minPeriod = long(float(1) * 50000.0 / maxFreq);
   }
 
   int i = 0;
+  
   while (i < moveSteps) {
     long pastTime = micros();
 
-    // Check all conditions before sending clock signal
     if (abortMovement) {
       abortMovement = false;
       return;
@@ -281,17 +281,19 @@ void startMovement(EthernetClient client, bool positiveDirection) {
       Serial.println();
       Serial.println("MOVEMENT CANCELLED: Bottom limit hit!");
       return;
-    } else {
+    } 
+    
+    else {
       //Positive edge of clk
       digitalWrite(clkPin, HIGH);
-      Serial.print("clkHigh");
+      //Serial.print("clkHigh");
 
       // delay until halfway through period designated by clk_frequency
-      while (micros() - pastTime < currPeriod) {Serial.println("WAITING");}
+      while (micros() - pastTime < currPeriod) {} //Serial.println("WAITING");
 
       pastTime = micros();
       digitalWrite(clkPin, LOW);
-      Serial.print("clkLow");
+      //Serial.print("clkLow");
 
       i++;
 
@@ -305,11 +307,11 @@ void startMovement(EthernetClient client, bool positiveDirection) {
       else if (i >= rampDownStart){
           currPeriod = long(float(1) * 500000.0 / (maxFreq - (i-rampDownStart)*clkRamp));
       }
-    }
 
-    // delay until reach the end of period
-      while (micros() - pastTime < currPeriod) {Serial.println("WAITING");}
-  }
+      // delay until reach the end of period
+      while (micros() - pastTime < currPeriod) {} //Serial.println("WAITING - END");
+    }
+  }    
 
   Serial.println();
   Serial.println("Movement successfully finished (Huge Dub)");
