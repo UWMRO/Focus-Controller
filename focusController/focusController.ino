@@ -20,9 +20,9 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
-#include <Thread.h>
-#include <ThreadController.h>
-#include <StaticThreadController.h>
+// #include <Thread.h>
+// #include <ThreadController.h>
+// #include <StaticThreadController.h>
 
 // MAC address and IP address for controller
 byte mac[] = {0xA8, 0x61, 0x0A, 0xAE, 0x25, 0x13};
@@ -85,24 +85,64 @@ void setup() {
   // moveMotor.enabled = true;
 }
 
+// Code for formatting json return strings
+void sendJSONResponse(EthernetClient client, int code, String body) {
+  client.println("HTTP/1.1 " + String(code) + " OK");
+  client.println("Content-Type: application/json");
+  client.println("Connection: close");
+  client.println();
+  client.println("{" + body + "}");
+}
 
-void loop() {
-  // listen for incoming clients
-  updatePosition();
-  EthernetClient client = server.available();
-  if (client) {
-
-    handleClient(client);
-
-    // give the web browser time to receive the data
-    delay(1);
-
-    // close the connection:
-    client.stop();
-    // Serial.println("client disconnected");
+// Emulating the potentiometer position
+void updatePosition() {
+  if (moving && (millis() - lastStepTime > stepDelay)) {
+    position += (target_steps > 0) ? 1 : -1;
+    target_steps -= (target_steps > 0) ? 1 : -1;
+    lastStepTime = millis();
+    
+    if (target_steps == 0 || checkLimits()) {
+      moving = false;
+      position = constrain(position, down_limit, up_limit);
+    }
   }
 }
 
+bool checkLimits() {
+  return (position >= up_limit) || (position <= down_limit);
+}
+
+void startMovement() {
+  //Disable thread so another movement call won't overwrite the current movement
+  moving = true;
+
+  // Period is 1/f, we want to convert to ms then divide by 2 since pulseTime should be half of a clock cycle
+  long pulseTime = long(float(1)*500000.0/clkFreq);
+
+  int i = 0;
+  while (i < moveSteps && !abortMovement) {
+    long pastTime = micros();
+    digitalWrite(clkPin, HIGH);
+    Serial.print("clkHigh");
+
+    // delay until halfway through period designated by clk_frequency
+    while (micros() - pastTime < pulseTime) {}
+    
+    pastTime = micros();
+    digitalWrite(clkPin, LOW);
+    Serial.print("clkLow");
+
+    // delay until reach the end of period
+    while (micros() - pastTime < pulseTime) {}
+
+    i++;
+  }
+  Serial.println();
+  Serial.println("Movement Finished");
+
+  moving = false;
+  // moveMotor.enabled = true;
+}
 
 void handleClient(EthernetClient client) {
     char request[128];
@@ -190,64 +230,22 @@ void handleClient(EthernetClient client) {
 
     sendJSONResponse(client, 300, "\"code\":300");
   }
+ } 
 }
 
-// Code for formatting json return strings
-void sendJSONResponse(EthernetClient client, int code, String body) {
-  client.println("HTTP/1.1 " + String(code) + " OK");
-  client.println("Content-Type: application/json");
-  client.println("Connection: close");
-  client.println();
-  client.println("{" + body + "}");
-}
+void loop() {
+  // listen for incoming clients
+  updatePosition();
+  EthernetClient client = server.available();
+  if (client) {
 
-// Emulating the potentiometer position
-void updatePosition() {
-  if (moving && (millis() - lastStepTime > stepDelay)) {
-    position += (target_steps > 0) ? 1 : -1;
-    target_steps -= (target_steps > 0) ? 1 : -1;
-    lastStepTime = millis();
-    
-    if (target_steps == 0 || checkLimits()) {
-      moving = false;
-      position = constrain(position, down_limit, up_limit);
-    }
+    handleClient(client);
+
+    // give the web browser time to receive the data
+    delay(1);
+
+    // close the connection:
+    client.stop();
+    // Serial.println("client disconnected");
   }
 }
-
-bool checkLimits() {
-  return (position >= up_limit) || (position <= down_limit);
-}
-
-void startMovement() {
-  //Disable thread so another movement call won't overwrite the current movement
-  moving = true;
-
-  // Period is 1/f, we want to convert to ms then divide by 2 since pulseTime should be half of a clock cycle
-  long pulseTime = long(float(1)*500000.0/clkFreq);
-
-  int i = 0;
-  while (i < moveSteps && !abortMovement) {
-    long pastTime = micros();
-    digitalWrite(clkPin, HIGH);
-    Serial.print("clkHigh");
-
-    // delay until halfway through period designated by clk_frequency
-    while (micros() - pastTime < pulseTime) {}
-    
-    pastTime = micros();
-    digitalWrite(clkPin, LOW);
-    Serial.print("clkLow");
-
-    // delay until reach the end of period
-    while (micros() - pastTime < pulseTime) {}
-
-    i++;
-  }
-  Serial.println();
-  Serial.println("Movement Finished");
-
-  moving = false;
-  // moveMotor.enabled = true;
-}
-
