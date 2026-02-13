@@ -1645,7 +1645,7 @@
 	)
 	(text "AC Outlet"
 		(exclude_from_sim no)
-		(at 203.2 60.198 0)
+		(at 218.44 139.192 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -1667,7 +1667,7 @@
 		(at 127 124.46)
 		(diameter 0)
 		(color 0 0 0 0)
-		(uuid "76013372-821c-44f3-89cb-0f382042fffb")
+		(uuid "5533e963-af0a-455c-bb4a-a788e6ebe7c8")
 	)
 	(junction
 		(at 124.46 124.46)
@@ -1700,7 +1700,7 @@
 		(uuid "29969528-7a44-4327-9955-a892e6f7dd6f")
 	)
 	(no_connect
-		(at 182.88 110.49)
+		(at 198.12 88.9)
 		(uuid "319caf11-a502-437e-a256-910c49d97ccb")
 	)
 	(no_connect
@@ -1728,7 +1728,7 @@
 		(uuid "50a10e93-ddda-4b74-b1fe-cbb73ce57cb3")
 	)
 	(no_connect
-		(at 182.88 107.95)
+		(at 198.12 91.44)
 		(uuid "590d0a67-9fe3-40d5-acd6-41632ef64c8e")
 	)
 	(no_connect
@@ -1736,11 +1736,11 @@
 		(uuid "5da6f4aa-ac78-48f4-b062-e930068d24a0")
 	)
 	(no_connect
-		(at 182.88 102.87)
+		(at 198.12 96.52)
 		(uuid "70f1eb32-b735-45a9-9594-bf3be938789f")
 	)
 	(no_connect
-		(at 182.88 105.41)
+		(at 198.12 93.98)
 		(uuid "730c9117-14ae-436d-a9d3-9921078a9c20")
 	)
 	(no_connect
@@ -1748,7 +1748,7 @@
 		(uuid "76b69c0f-a9ce-49cb-aa6d-3c45bbcba412")
 	)
 	(no_connect
-		(at 182.88 100.33)
+		(at 198.12 99.06)
 		(uuid "78428f2a-5688-491b-a0b2-c601b45feed0")
 	)
 	(no_connect
@@ -1772,7 +1772,7 @@
 		(uuid "b64a278c-7f68-423a-8b60-f427ab06b80d")
 	)
 	(no_connect
-		(at 182.88 87.63)
+		(at 198.12 111.76)
 		(uuid "b6e5e5a1-3917-432b-9e40-fa833e79b832")
 	)
 	(no_connect
@@ -1782,26 +1782,6 @@
 	(no_connect
 		(at 137.16 85.09)
 		(uuid "fae838e6-cd17-43a8-a038-0ae08aac405b")
-	)
-	(wire
-		(pts
-			(xy 177.8 124.46) (xy 177.8 85.09)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "0c6171e2-4800-40d1-955f-53afef8d0f4f")
-	)
-	(wire
-		(pts
-			(xy 127 124.46) (xy 177.8 124.46)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "0ce8e773-8f54-429d-b9ae-3ee0ab6c7928")
 	)
 	(wire
 		(pts
@@ -1825,6 +1805,16 @@
 	)
 	(wire
 		(pts
+			(xy 127 124.46) (xy 165.1 124.46)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1e283147-fcc1-4cb2-a08b-6a92e71ab575")
+	)
+	(wire
+		(pts
 			(xy 121.92 123.19) (xy 121.92 124.46)
 		)
 		(stroke
@@ -1835,17 +1825,7 @@
 	)
 	(wire
 		(pts
-			(xy 177.8 85.09) (xy 182.88 85.09)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "2a7d04e3-a292-4bba-bc3a-a900d819972d")
-	)
-	(wire
-		(pts
-			(xy 182.88 58.42) (xy 158.75 58.42)
+			(xy 198.12 140.97) (xy 173.99 140.97)
 		)
 		(stroke
 			(width 0)
@@ -1865,7 +1845,7 @@
 	)
 	(wire
 		(pts
-			(xy 182.88 73.66) (xy 179.07 73.66)
+			(xy 198.12 125.73) (xy 194.31 125.73)
 		)
 		(stroke
 			(width 0)
@@ -1885,7 +1865,7 @@
 	)
 	(wire
 		(pts
-			(xy 168.91 78.74) (xy 168.91 71.12)
+			(xy 184.15 120.65) (xy 184.15 128.27)
 		)
 		(stroke
 			(width 0)
@@ -1895,7 +1875,7 @@
 	)
 	(wire
 		(pts
-			(xy 173.99 76.2) (xy 182.88 76.2)
+			(xy 189.23 123.19) (xy 198.12 123.19)
 		)
 		(stroke
 			(width 0)
@@ -1905,7 +1885,7 @@
 	)
 	(wire
 		(pts
-			(xy 168.91 78.74) (xy 182.88 78.74)
+			(xy 184.15 120.65) (xy 198.12 120.65)
 		)
 		(stroke
 			(width 0)
@@ -1915,7 +1895,7 @@
 	)
 	(wire
 		(pts
-			(xy 158.75 58.42) (xy 158.75 60.96)
+			(xy 173.99 140.97) (xy 173.99 138.43)
 		)
 		(stroke
 			(width 0)
@@ -1925,7 +1905,7 @@
 	)
 	(wire
 		(pts
-			(xy 179.07 73.66) (xy 179.07 60.96)
+			(xy 194.31 125.73) (xy 194.31 138.43)
 		)
 		(stroke
 			(width 0)
@@ -1935,7 +1915,7 @@
 	)
 	(wire
 		(pts
-			(xy 179.07 60.96) (xy 163.83 60.96)
+			(xy 194.31 138.43) (xy 179.07 138.43)
 		)
 		(stroke
 			(width 0)
@@ -1945,7 +1925,7 @@
 	)
 	(wire
 		(pts
-			(xy 182.88 71.12) (xy 182.88 58.42)
+			(xy 198.12 128.27) (xy 198.12 140.97)
 		)
 		(stroke
 			(width 0)
@@ -1955,7 +1935,17 @@
 	)
 	(wire
 		(pts
-			(xy 173.99 76.2) (xy 173.99 66.04)
+			(xy 165.1 114.3) (xy 165.1 124.46)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c19afa10-8502-47d1-9b6f-9a4388305e6f")
+	)
+	(wire
+		(pts
+			(xy 189.23 123.19) (xy 189.23 133.35)
 		)
 		(stroke
 			(width 0)
@@ -1975,7 +1965,7 @@
 	)
 	(wire
 		(pts
-			(xy 173.99 66.04) (xy 168.91 66.04)
+			(xy 189.23 133.35) (xy 184.15 133.35)
 		)
 		(stroke
 			(width 0)
@@ -1983,9 +1973,20 @@
 		)
 		(uuid "e4cae0d5-d60e-483e-a3dd-41c0e5123661")
 	)
+	(wire
+		(pts
+			(xy 165.1 114.3) (xy 198.12 114.3)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f3c9c8a7-ebe0-45a4-ba3c-11d67919bca6")
+	)
 	(symbol
 		(lib_id "power:+BATT")
-		(at 205.74 64.77 0)
+		(at 220.98 134.62 0)
+		(mirror x)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -1994,7 +1995,7 @@
 		(fields_autoplaced yes)
 		(uuid "087f6f5d-4796-4121-9d97-0bd7606a3f5e")
 		(property "Reference" "#PWR04"
-			(at 205.74 68.58 0)
+			(at 220.98 130.81 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2003,7 +2004,7 @@
 			)
 		)
 		(property "Value" "~"
-			(at 205.74 60.96 0)
+			(at 220.98 138.43 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2011,7 +2012,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 205.74 64.77 0)
+			(at 220.98 134.62 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2020,7 +2021,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 205.74 64.77 0)
+			(at 220.98 134.62 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2029,7 +2030,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"+BATT\""
-			(at 205.74 64.77 0)
+			(at 220.98 134.62 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2051,7 +2052,8 @@
 	)
 	(symbol
 		(lib_id "power:+BATT")
-		(at 200.66 64.77 0)
+		(at 215.9 134.62 0)
+		(mirror x)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -2060,7 +2062,7 @@
 		(fields_autoplaced yes)
 		(uuid "455f2268-2113-4cdb-af2a-2b048d3b7142")
 		(property "Reference" "#PWR02"
-			(at 200.66 68.58 0)
+			(at 215.9 130.81 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2069,7 +2071,7 @@
 			)
 		)
 		(property "Value" "~"
-			(at 200.66 60.96 0)
+			(at 215.9 138.43 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2077,7 +2079,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 200.66 64.77 0)
+			(at 215.9 134.62 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2086,7 +2088,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 200.66 64.77 0)
+			(at 215.9 134.62 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2095,7 +2097,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"+BATT\""
-			(at 200.66 64.77 0)
+			(at 215.9 134.62 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2117,7 +2119,8 @@
 	)
 	(symbol
 		(lib_id "Motor:Stepper_Motor_bipolar")
-		(at 161.29 68.58 270)
+		(at 176.53 130.81 270)
+		(mirror x)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -2125,7 +2128,7 @@
 		(dnp no)
 		(uuid "5afaa58f-906b-4cf0-98e8-afed623e1954")
 		(property "Reference" "M1"
-			(at 156.718 70.866 90)
+			(at 171.958 128.524 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2133,7 +2136,7 @@
 			)
 		)
 		(property "Value" "Focus_Motor"
-			(at 161.29 73.66 90)
+			(at 176.53 125.73 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2141,7 +2144,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 161.036 68.834 0)
+			(at 176.276 130.556 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2150,7 +2153,7 @@
 			)
 		)
 		(property "Datasheet" "http://www.infineon.com/dgdl/Application-Note-TLE8110EE_driving_UniPolarStepperMotor_V1.1.pdf?fileId=db3a30431be39b97011be5d0aa0a00b0"
-			(at 161.036 68.834 0)
+			(at 176.276 130.556 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2159,7 +2162,7 @@
 			)
 		)
 		(property "Description" "4-wire bipolar stepper motor"
-			(at 161.29 68.58 0)
+			(at 176.53 130.81 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2190,16 +2193,16 @@
 	)
 	(symbol
 		(lib_id "Driver_Motor:STK672-040-E")
-		(at 199.39 95.25 180)
+		(at 214.63 104.14 0)
+		(mirror y)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "7a352d83-d1a9-469f-a7b9-2578a1067c02")
 		(property "Reference" "U1"
-			(at 212.09 95.2499 0)
+			(at 227.33 104.1401 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2208,7 +2211,7 @@
 			)
 		)
 		(property "Value" "Stepper Motor Driver PK2"
-			(at 212.09 97.7899 0)
+			(at 227.33 101.6001 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2217,7 +2220,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 194.31 86.36 0)
+			(at 209.55 113.03 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2226,7 +2229,7 @@
 			)
 		)
 		(property "Datasheet" "http://www.onsemi.com/pub_link/Collateral/EN5227-D.PDF"
-			(at 197.358 60.96 0)
+			(at 212.598 138.43 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2235,7 +2238,7 @@
 			)
 		)
 		(property "Description" "Stepper motor driver with microstepping controller, 1.5A"
-			(at 197.612 59.944 0)
+			(at 212.852 139.446 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2308,7 +2311,8 @@
 	)
 	(symbol
 		(lib_id "power:+BATT")
-		(at 203.2 64.77 0)
+		(at 218.44 134.62 0)
+		(mirror x)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -2317,7 +2321,7 @@
 		(fields_autoplaced yes)
 		(uuid "7ad4d579-69f0-4de4-84b3-b65c010c984b")
 		(property "Reference" "#PWR03"
-			(at 203.2 68.58 0)
+			(at 218.44 130.81 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2326,7 +2330,7 @@
 			)
 		)
 		(property "Value" "~"
-			(at 203.2 60.96 0)
+			(at 218.44 138.43 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2334,7 +2338,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 203.2 64.77 0)
+			(at 218.44 134.62 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2343,7 +2347,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 203.2 64.77 0)
+			(at 218.44 134.62 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2352,7 +2356,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"+BATT\""
-			(at 203.2 64.77 0)
+			(at 218.44 134.62 0)
 			(effects
 				(font
 					(size 1.27 1.27)
