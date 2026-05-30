@@ -2,7 +2,7 @@
   MRO Focus Controller (NON THREADED VERSION)
 
   An arduino that sends focussing based commands to the Manastash Ridge Observatory
-  
+
   The arduino hosts a simple Arduino web server, and recieves commands via
   web server actions sent over it's ethernet port
 
@@ -15,7 +15,7 @@
  * Limit pin 2 - pin 5
  * Potentiometer - TinkerKit connection "IN3"
 
- Code written by AUEG Arduino Team 2025! 
+ Code written by AUEG Arduino Team 2025!
  */
 
 #include <SPI.h>
@@ -23,7 +23,7 @@
 
 // MAC address and IP address for controller
 byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x25, 0x13 };
-IPAddress ip(192, 168, 1, 11);
+IPAddress ip(72, 233, 250, 86);
 
 // Initialize the Ethernet server library
 // with the IP address and port you want to use
@@ -45,7 +45,7 @@ bool abortMovement = false;
 
 // Movement Tuning parameters
 float maxClkFreq = 770;  // in Hz
-float minClkFreq = 10;   // in Hz
+float minClkFreq = 400;   // in Hz
 float clkRamp = 2;       // in Hz
 
 // Limit Conditionals
@@ -53,11 +53,12 @@ bool atTop;
 bool atBottom;
 
 // Pin Numbers
-int clkPin = 9;
-int dirPin = 8;
-int enPin = 7;
+int clkPin = 9; // yellow
+int dirPin = 8; // brown
+int enPin = 7;  // green
 int topLimPin = 3;
 int botLimPin = 2;
+// ground is black
 
 void setup() {
   // Open serial communications and wait for port to open:
@@ -91,6 +92,7 @@ void setup() {
   // Check Limits Before starting
   atTop = digitalRead(topLimPin) == LOW;  // Based on Measurements from fall, 0V means limit hit and 3.3V means limit not hit
   atBottom = digitalRead(botLimPin) == LOW;
+  digitalWrite(enPin, HIGH);
 
   // start the server
   server.begin();
@@ -134,7 +136,7 @@ void handleClient(EthernetClient client) {
   /*
     To test the following commands enter something like "192.168.1.11/status" in web browser
     can also test with "curl -X GET http://192.168.1.11/status" in terminal like powershell
-    ^ Make sure ethernet port IP of test computer is configured 
+    ^ Make sure ethernet port IP of test computer is configured
     (E.g. access ethernet settings of computer, change from DHCP to manual, use ip like 192.168.1.9 and basic mask like 255.255.0.0 )
   */
 
@@ -241,13 +243,13 @@ void startMovement(EthernetClient client, bool positiveDirection) {
   moving = true;
   int maxFreq = maxClkFreq;
 
-
-  // Period is 1/f, we want to convert to ms then divide by 2 since pulseTime should be half of a clock cycle
+  // Period is 1/f, we want to convert to us then divide by 2 since pulseTime should be half of a clock cycle
   long minPeriod = long(float(1) * 500000.0 / maxClkFreq);
   long currPeriod = long(float(1) * 500000.0 / minClkFreq);
 
   int rampDistance = (maxClkFreq-minClkFreq) / clkRamp;
-  Serial.println("RAMP DISTANCE" + String(rampDistance));
+  Serial.println("RAMP DISTANCE " + String(rampDistance));
+  Serial.println("minPd " + String(minPeriod)  + " maxPd " + String(currPeriod));
 
   //Pre Define Stages
   int rampUpEnd = rampDistance;
@@ -256,40 +258,46 @@ void startMovement(EthernetClient client, bool positiveDirection) {
     rampUpEnd = int(moveSteps/2);
     rampDownStart = int(moveSteps/2) + 1;
     maxFreq = int(minClkFreq+rampUpEnd*clkRamp);
-    minPeriod = long(float(1) * 500000.0 / maxFreq);
+    minPeriod = long(float(1) * 50000.0 / maxFreq);
   }
 
   int i = 0;
+
   while (i < moveSteps) {
     long pastTime = micros();
 
-    // Check all conditions before sending clock signal
     if (abortMovement) {
       abortMovement = false;
       return;
-    } else if (digitalRead(topLimPin) == LOW) {
-      sendJSONResponse(client, 520, "\"code\":520");
-      position = position + i;
-      Serial.println();
-      Serial.println("MOVEMENT CANCELLED: Top limit hit!");
-      return;
-    } else if (digitalRead(botLimPin) == LOW) {
-      position = position - i;
-      sendJSONResponse(client, 521, "\"code\":521");
-      Serial.println();
-      Serial.println("MOVEMENT CANCELLED: Bottom limit hit!");
-      return;
-    } else {
+
+    // Commenting this out for now since the limit switches are not connected.
+    //
+    // } else if (digitalRead(topLimPin) == LOW) {
+    //   sendJSONResponse(client, 520, "\"code\":520");
+    //   position = position + i;
+    //   Serial.println();
+    //   Serial.println("MOVEMENT CANCELLED: Top limit hit!");
+    //   return;
+    // } else if (digitalRead(botLimPin) == LOW) {
+    //   position = position - i;
+    //   sendJSONResponse(client, 521, "\"code\":521");
+    //   Serial.println();
+    //   Serial.println("MOVEMENT CANCELLED: Bottom limit hit!");
+    //   return;
+
+    }
+
+    else {
       //Positive edge of clk
       digitalWrite(clkPin, HIGH);
-      Serial.print("clkHigh");
+      //Serial.print("clkHigh");
 
       // delay until halfway through period designated by clk_frequency
-      while (micros() - pastTime < currPeriod) {Serial.println("WAITING");}
+      while (micros() - pastTime < currPeriod) {} //Serial.println("WAITING");
 
       pastTime = micros();
       digitalWrite(clkPin, LOW);
-      Serial.print("clkLow");
+      //Serial.print("clkLow");
 
       i++;
 
@@ -303,10 +311,10 @@ void startMovement(EthernetClient client, bool positiveDirection) {
       else if (i >= rampDownStart){
           currPeriod = long(float(1) * 500000.0 / (maxFreq - (i-rampDownStart)*clkRamp));
       }
-    }
 
-    // delay until reach the end of period
-      while (micros() - pastTime < currPeriod) {Serial.println("WAITING");}
+      // delay until reach the end of period
+      while (micros() - pastTime < currPeriod) {} //Serial.println("WAITING - END");
+    }
   }
 
   Serial.println();
